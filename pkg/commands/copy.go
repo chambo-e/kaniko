@@ -59,8 +59,14 @@ func (c *CopyCommand) ExecuteCommand(config *v1.Config, buildArgs *dockerfile.Bu
 	if err != nil {
 		return err
 	}
+
+	excluded, err := util.ResolveDockerignore(c.buildcontext)
 	// For each source, iterate through and copy it over
 	for _, src := range srcs {
+		if util.IsExcludedPath(src, excluded) {
+			continue
+		}
+
 		fullPath := filepath.Join(c.buildcontext, src)
 		fi, err := os.Lstat(fullPath)
 		if err != nil {
@@ -79,7 +85,7 @@ func (c *CopyCommand) ExecuteCommand(config *v1.Config, buildArgs *dockerfile.Bu
 				// we need to add '/' to the end to indicate the destination is a directory
 				dest = filepath.Join(cwd, dest) + "/"
 			}
-			copiedFiles, err := util.CopyDir(fullPath, dest)
+			copiedFiles, err := util.CopyDir(fullPath, dest, excluded)
 			if err != nil {
 				return err
 			}

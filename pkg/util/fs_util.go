@@ -423,13 +423,17 @@ func DownloadFileToDest(rawurl, dest string) error {
 
 // CopyDir copies the file or directory at src to dest
 // It returns a list of files it copied over
-func CopyDir(src, dest string) ([]string, error) {
+func CopyDir(src, dest string, excluded []string) ([]string, error) {
 	files, err := RelativeFiles("", src)
 	if err != nil {
 		return nil, err
 	}
 	var copiedFiles []string
 	for _, file := range files {
+		if IsExcludedPath(file, excluded) {
+			continue
+		}
+
 		fullPath := filepath.Join(src, file)
 		fi, err := os.Lstat(fullPath)
 		if err != nil {

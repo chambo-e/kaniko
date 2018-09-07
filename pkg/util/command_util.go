@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/GoogleContainerTools/kaniko/pkg/constants"
+	"github.com/docker/docker/builder/dockerignore"
 	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -105,6 +106,34 @@ func ResolveSources(srcsAndDest instructions.SourcesAndDest, root string) ([]str
 	}
 	// Check to make sure the sources are valid
 	return srcs, IsSrcsValid(srcsAndDest, srcs, root)
+}
+
+func ResolveDockerignore(contextPath string) ([]string, error) {
+	dockerignoreReader, err := os.Open(contextPath + ".dockerignore")
+	switch {
+	case os.IsNotExist(err):
+		return []string{}, nil
+	case err != nil:
+		return nil, err
+	}
+
+	defer dockerignoreReader.Close()
+
+	excludes, err := dockerignore.ReadAll(dockerignoreReader)
+	if err != nil {
+		return nil, err
+	}
+
+	return excludes, nil
+}
+
+func IsExcludedPath(filePath string, excluded []string) bool {
+	for _, excludedPath := range excluded {
+		if strings.HasPrefix(filePath, excludedPath) {
+			return true
+		}
+	}
+	return false
 }
 
 // matchSources returns a list of sources that match wildcards
